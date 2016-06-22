@@ -1,0 +1,19 @@
+applications:
+- name: edb-scraper
+  command: "python scraper_sched.py"
+  no-hostname: true
+  no-route: true
+  buildpack: python_buildpack
+  memory: 2048M
+  disk_quota: 1G
+  instances: 1
+  timeout: 80
+  health-check-type: none
+  services:
+    - edb-mongodb
+    - edb-s3
+  env:
+    SCRAPER_SCHED_INTERVAL_SECONDS: 5400
+    SCRAPER_SCHED_ONETIME: False
+    SCRAPER_SCHED_ARCHIVE: True
+    SCRAPER_DELETE_INTERMEDIARY_ARCHIVES: False
