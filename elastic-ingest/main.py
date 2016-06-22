@@ -1,0 +1,1 @@
+# TODO: check elastic, if data from data/articles-100.json is not in the db, import it to elastic.
