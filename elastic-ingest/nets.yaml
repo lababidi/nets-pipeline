@@ -1,0 +1,12 @@
+directories:
+  articles: /apps/nets-pipeline-home/data
+  logs: /apps/nets-pipeline-home/logs
+
+elasticsearch:
+  host: localhost
+  port: 9200
+
+
+logging:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
