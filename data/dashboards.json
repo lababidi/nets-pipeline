@@ -1,0 +1,21 @@
+[
+  {
+    "_id": "Nets",
+    "_type": "dashboard",
+    "_source": {
+      "title": "Nets",
+      "hits": 0,
+      "description": "",
+      "panelsJSON": "[{\"col\":1,\"id\":\"Article-Count,-histogram\",\"panelIndex\":1,\"row\":1,\"size_x\":12,\"size_y\":2,\"type\":\"visualization\"},{\"col\":1,\"id\":\"significant-terms,-20,-table\",\"panelIndex\":2,\"row\":3,\"size_x\":3,\"size_y\":5,\"type\":\"visualization\"},{\"col\":4,\"id\":\"significant-terms,-10,-bar-chart\",\"panelIndex\":3,\"row\":3,\"size_x\":4,\"size_y\":3,\"type\":\"visualization\"},{\"col\":8,\"id\":\"terms,-top-20-table\",\"panelIndex\":4,\"row\":3,\"size_x\":3,\"size_y\":5,\"type\":\"visualization\"}]",
+      "optionsJSON": "{\"darkTheme\":true}",
+      "uiStateJSON": "{\"P-2\":{\"spy\":{\"mode\":{\"fill\":false,\"name\":null}}},\"P-3\":{\"vis\":{\"legendOpen\":false}}}",
+      "version": 1,
+      "timeRestore": true,
+      "timeTo": "now",
+      "timeFrom": "now-6M",
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"filter\":[{\"$state\":{\"store\":\"appState\"},\"meta\":{\"alias\":null,\"disabled\":true,\"index\":\"article*\",\"key\":\"content\",\"negate\":false,\"value\":\"religious\"},\"query\":{\"match\":{\"content\":{\"query\":\"religious\",\"type\":\"phrase\"}}}},{\"query\":{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"islam\"}}}]}"
+      }
+    }
+  }
+]
