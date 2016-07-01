@@ -4,8 +4,11 @@ directories:
 
 elasticsearch:
   host: localhost
-  port: 9200
+  port: 92
 
+geocoder:
+  name: CLAVIN
+  url: https://lew.geointservices.io/v1/geo/getLocations?text=__PAYLOAD__
 
 logging:
     format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
