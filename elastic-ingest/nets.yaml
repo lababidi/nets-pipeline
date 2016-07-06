@@ -1,14 +1,16 @@
 directories:
   articles: /apps/nets-pipeline-home/data
   logs: /apps/nets-pipeline-home/logs
-
+  export: /apps/nets-pipeline-home/data
 elasticsearch:
   host: localhost
   port: 92
 
 geocoder:
-  name: CLAVIN
-  url: https://lew.geointservices.io/v1/geo/getLocations?text=__PAYLOAD__
+ #  name: CLAVIN
+ # url: https://lew.geointservices.io/v1/geo/getLocations?text=__PAYLOAD__
+  name: GOOGLE
+  url: http://maps.googleapis.com/maps/api/geocode/json?address=__PAYLOAD__
 
 logging:
     format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

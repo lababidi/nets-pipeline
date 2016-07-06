@@ -22,6 +22,8 @@ class Supportkit:
         self.es_url = 'http://%s:%s' % (self.parameters['elasticsearch']['host'],self.parameters['elasticsearch']['port'])
         self.logger.info("ready. ES URL : %s", self.es_url)
         self.es = Elasticsearch()
+        EventCandidate._geocoder = self.parameters['geocoder']['url']
+        self._title = 'foo'
 
 
     def status(self):
@@ -65,18 +67,42 @@ class Supportkit:
         hits= result['hits']['hits']
         self.logger.info("Retrieved %s %s articles" % (len(hits), type))
         for article in hits:
-            ec = EventCandidate( type, article['_source']['content'], article['_source']['url'])
+            ec = EventCandidate()
+            ec.type = type
+            ec.article = article['_id']
+            ec.content = article['_source']['content']
+            ec.url = article['_source']['url']
+            ec.title = article['_source']['title']
+            ec.language = article['_source']['language']
+            ec.date_collected = article['_source']['date_added']['$date']
+            ec.date_published = article['_source']['date']
+            ec.date_collected_as_date_published = False
+            if len(ec.date_published) == 0:
+                ec.date_published = ec.date_collected
+                ec.date_collected_as_date_published = True
+
             ec.find_entities()
+            ec.geocode()
             self.es.index(index='events', doc_type=type, body = ec.__dict__)
 
 
+    def export(self,type):
+        result = self.es.search(index='events', doc_type=type, size=500)
+        hits = result['hits']['hits']
+        self.logger.info("Retrieved %s %s events for export" % (len(hits), type))
+        filename =  join( self.parameters['directories']['export'], 'events.json')
+        self.logger.info( '%s' % filename )
+        with open(filename, 'w') as f:
+            json.dump(hits, f)
 #
 parser = argparse.ArgumentParser(description='NETS support kit.')
 parser.add_argument('--yaml',  default='nets.yaml', help='YAML file' )
 parser.add_argument('--status', help='Display NETS status', action='store_true')
 parser.add_argument('--load', default=None, help='load raw article files with given type' )
+parser.add_argument('--export', default=None, help='export up to 100 events with given type' )
 parser.add_argument('--pipeline',  default=None, help='convert all articles  of given type to events')
 parser.add_argument('--initialize',  default='NA', help='Initialize an index', choices=['articles','events'])
+
 
 
 args = parser.parse_args()
@@ -86,6 +112,8 @@ if args.status :
     me.status()
 elif args.load :
     me.load(args.load)
+elif args.export :
+    me.export(args.export)
 elif args.pipeline:
     me.pipeline(args.pipeline)
 elif not args.initialize == 'NA':
