@@ -5,17 +5,18 @@ import json
 import logging
 import pattern.web
 import pages_scrape
-import mongo_connection
 from goose import Goose
-from pymongo import MongoClient
+from elasticsearch import Elasticsearch
 from ConfigParser import ConfigParser
 from multiprocessing import Pool
+from datetime import datetime
+import parsedatetime as pdt
 
 # Initialize Logger
 logger = None
 
 
-def scrape_func(website, lang, address, COLL, db_auth, db_user, db_pass, db_host=None):
+def scrape_func(website, lang, address, COLL, index_auth, db_user, db_pass, db_host=None):
     """
     Function to scrape various RSS feeds.
 
@@ -43,23 +44,23 @@ def scrape_func(website, lang, address, COLL, db_auth, db_user, db_pass, db_host
     # Setup the database
 
     if db_host:
-        connection = MongoClient(host=db_host)
+        connection = Elasticsearch(
+            [db_host],
+            http_auth=(db_user, db_pass)
+        )
     else:
-        connection = MongoClient()
+        connection = Elasticsearch(
+            [{'host': 'localhost', 'port': 9200}],
+            http_auth=(db_user, db_pass)
+        )
 
-    if db_auth:
-        connection[db_auth].authenticate(db_user, db_pass)
-        db = connection[db_auth]
-    else:
-        db = connection.event_scrape
-    collection = db[COLL]
-
+    # indices = connection.indices.get_aliases().keys()
     # Scrape the RSS feed
     results = get_rss(address, website)
 
     # Pursue each link in the feed
     if results:
-        parse_results(results, website, lang, collection)
+        parse_results(results, website, lang, connection, index_auth)
 
     logger.info('Scrape of {} finished'.format(website))
 
@@ -100,7 +101,7 @@ def get_rss(address, website):
     return results
 
 
-def parse_results(rss_results, website, lang, db_collection):
+def parse_results(rss_results, website, lang, connection, auth_index):
     """
     Function to parse the links drawn from an RSS feed.
 
@@ -116,9 +117,8 @@ def parse_results(rss_results, website, lang, db_collection):
     website: String.
                 Nickname for the RSS feed being scraped.
 
-    db_collection: pymongo Collection.
-                        Collection within MongoDB that in which results are
-                        stored.
+    connection: Elastic search conection
+                Connection used to read and write to db
     """
     if lang == 'english':
         goose_extractor = Goose({'use_meta_language': False,
@@ -132,11 +132,12 @@ def parse_results(rss_results, website, lang, db_collection):
     else:
         print(lang)
 
+    cal = pdt.Calendar()
     for result in rss_results:
 
         page_url = _convert_url(result.url, website)
 
-        in_database = _check_mongo(page_url, db_collection)
+        in_database = _check_url(page_url, connection, auth_index)
 
         if not in_database:
             try:
@@ -150,20 +151,38 @@ def parse_results(rss_results, website, lang, db_collection):
             text = ''
 
         if text:
+            try:
+                time_struct, parse_status = cal.parse(result.date)
+                date_parsed = datetime(*time_struct[:6]).isoformat()
+            except (Exception, TypeError, ValueError, KeyError, IndexError, OverflowError, AttributeError):
+                date_parsed = None
+
             cleaned_text = _clean_text(text, website)
+            response = connection.index(index=auth_index, doc_type=auth_index, body={
+                "content": unicode(cleaned_text, 'utf-8'),
+                "title": result.title,
+                "url": result.url,
+                "date_published_original": result.date,
+                "date_published": date_parsed,
+                "date_collected": datetime.now().isoformat(),
+                "source": website,
+                "language": lang
+            })
 
-            entry_id = mongo_connection.add_entry(db_collection, cleaned_text,
-                                                  result.title, result.url,
-                                                  result.date, website, lang)
-            if entry_id:
-                try:
-                    logger.info('Added entry from {} with id {}'.format(page_url,
-                                                                        entry_id))
-                except UnicodeDecodeError:
-                    logger.info('Added entry from {}. Unicode error for id'.format(result.url))
+            logger.info(response)
+
+            #entry_id = mongo_connection.add_entry(db_collection, cleaned_text,
+            #                                      result.title, result.url,
+            #                                      result.date, website, lang)
+            #if entry_id:
+            #    try:
+            #        logger.info('Added entry from {} with id {}'.format(page_url,
+            #                                                            entry_id))
+            #    except UnicodeDecodeError:
+            #        logger.info('Added entry from {}. Unicode error for id'.format(result.url))
 
 
-def _check_mongo(url, db_collection):
+def _check_url(url, connection, auth_index):
     """
     Private function to check if a URL appears in the database.
 
@@ -173,9 +192,7 @@ def _check_mongo(url, db_collection):
     url: String.
             URL for the news stories to be scraped.
 
-    db_collection: pymongo Collection.
-                        Collection within MongoDB that in which results are
-                        stored.
+    connection: elastic search connection
 
     Returns
     -------
@@ -183,13 +200,16 @@ def _check_mongo(url, db_collection):
     found: Boolean.
             Indicates whether or not a URL was found in the database.
     """
+    response = connection.search(index=auth_index, doc_type=auth_index, body={
+        "query":
+            {
+                "match_phrase": {
+                    "url": url
+                }
+            }
+        }, size=0, terminate_after=1, ignore_unavailable=True)
 
-    if db_collection.find_one({"url": url}):
-        found = True
-    else:
-        found = False
-
-    return found
+    return response["hits"]["total"] > 0
 
 
 def _convert_url(url, website):
@@ -292,7 +312,7 @@ def _clean_text(text, website):
     return text
 
 
-def call_scrape_func(siteList, db_collection, pool_size, db_auth, db_user,
+def call_scrape_func(siteList, db_collection, pool_size, db_index, db_user,
                      db_pass, db_host=None):
     """
     Helper function to iterate over a list of RSS feeds and scrape each.
@@ -312,7 +332,7 @@ def call_scrape_func(siteList, db_collection, pool_size, db_auth, db_user,
     """
     pool = Pool(pool_size)
     results = [pool.apply_async(scrape_func, (address, lang, website,
-                                              db_collection, db_auth, db_user,
+                                              db_collection, db_index, db_user,
                                               db_pass, db_host))
                for address, (website, lang) in siteList.iteritems()]
     [r.get(9999999) for r in results]
@@ -323,7 +343,7 @@ def call_scrape_func(siteList, db_collection, pool_size, db_auth, db_user,
 def _parse_config(parser):
     try:
         if 'Auth' in parser.sections():
-            auth_db = parser.get('Auth', 'auth_db')
+            auth_index = parser.get('Auth', 'auth_index')
             auth_user = parser.get('Auth', 'auth_user')
             auth_pass = parser.get('Auth', 'auth_pass')
             db_host = parser.get('Auth', 'db_host')
@@ -332,13 +352,13 @@ def _parse_config(parser):
             vcap_json = os.getenv('VCAP_SERVICES')
             if vcap_json != None:
                 vcap = json.loads(vcap_json)
-                auth_db = vcap['p-mongodb'][0]['credentials']['database']
-                auth_user = vcap['p-mongodb'][0]['credentials']['username']
-                auth_pass = vcap['p-mongodb'][0]['credentials']['password']
-                db_host = str(vcap['p-mongodb'][0]['credentials']['host'])+':'+str(vcap['p-mongodb'][0]['credentials']['port'])
+                auth_index = vcap['p-elasticsearch'][0]['credentials']['index']
+                auth_user = vcap['p-elasticsearch'][0]['credentials']['username']
+                auth_pass = vcap['p-elasticsearch'][0]['credentials']['password']
+                db_host = str(vcap['p-elasticsearch'][0]['credentials']['host'])+':'+str(vcap['p-elasticsearch'][0]['credentials']['port'])
             else:
-                db_host = '127.0.0.1:27017'
-                auth_db = ''
+                db_host = '127.0.0.1:9200'
+                auth_index = 'article'
                 auth_user = ''
                 auth_pass = ''
 
@@ -349,7 +369,7 @@ def _parse_config(parser):
         whitelist = parser.get('URLS', 'file')
         sources = parser.get('URLS', 'sources').split(',')
         pool_size = int(parser.get('Processes', 'pool_size'))
-        return collection, whitelist, sources, pool_size, log_dir, log_level, auth_db, auth_user, \
+        return collection, whitelist, sources, pool_size, log_dir, log_level, auth_index, auth_user, \
                auth_pass, db_host
     except Exception, e:
         print 'Problem parsing config file. {}'.format(e)
@@ -371,9 +391,10 @@ def parse_config():
 def run_scraper():
     global logger
     # Get the info from the cocfigcf
-    db_collection, whitelist_file, sources, pool_size, log_dir, log_level, auth_db, auth_user, \
-    auth_pass, db_host = parse_config()
-    print 'Scraper connecting to db at '+auth_db+' with username: '+auth_user+' and password: '+auth_pass+' and host: '+db_host
+    db_collection, whitelist_file, sources, pool_size, log_dir, log_level, auth_index, auth_user, auth_pass, \
+    db_host = parse_config()
+    print 'Scraper connecting to db at ' + auth_index + ' with username: ' + auth_user + ' and password: ' + auth_pass + \
+          ' and host: ' + db_host
 
     # Setup the logging
     logger = logging.getLogger('scraper_log')
@@ -409,7 +430,7 @@ def run_scraper():
         logger.warning('Could not open URL whitelist file.')
         raise
 
-    call_scrape_func(to_scrape, db_collection, pool_size, auth_db, auth_user,
+    call_scrape_func(to_scrape, db_collection, pool_size, auth_index, auth_user,
                      auth_pass, db_host=db_host)
     logger.info('All done.')
 

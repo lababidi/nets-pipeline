@@ -4,6 +4,7 @@ PyYAML==3.10
 spacy==0.101.0
 
 ## scraper
+parsedatetime
 BeautifulSoup
 APScheduler
 boto3
