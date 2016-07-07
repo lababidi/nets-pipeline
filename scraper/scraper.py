@@ -49,10 +49,7 @@ def scrape_func(website, lang, address, COLL, index_auth, db_user, db_pass, db_h
             http_auth=(db_user, db_pass)
         )
     else:
-        connection = Elasticsearch(
-            [{'host': 'localhost', 'port': 9200}],
-            http_auth=(db_user, db_pass)
-        )
+        raise Exception('db_host not specified')
 
     # indices = connection.indices.get_aliases().keys()
     # Scrape the RSS feed
@@ -340,27 +337,49 @@ def call_scrape_func(siteList, db_collection, pool_size, db_index, db_user,
     logger.info('Completed full scrape.')
 
 
+def safe_get(dict_, keys_array):
+    for key in keys_array:
+        try:
+            dict_ = dict_[key]
+        except KeyError:
+            return None
+    return dict_
+
+
 def _parse_config(parser):
     try:
+        # defaults
+        db_host = '127.0.0.1:9200'
+        auth_index = 'nets-article'
+        auth_user = ''
+        auth_pass = ''
+
+        # load from ini
         if 'Auth' in parser.sections():
             auth_index = parser.get('Auth', 'auth_index')
+            db_host = parser.get('Auth', 'db_host')
             auth_user = parser.get('Auth', 'auth_user')
             auth_pass = parser.get('Auth', 'auth_pass')
-            db_host = parser.get('Auth', 'db_host')
+
+        # load from env vars
         else:
             # Try env vars too
+            if os.getenv('SCRAPER_AUTH_INDEX'):
+                auth_index = os.getenv('SCRAPER_AUTH_INDEX')
+
+            #vcap_json = '{"user-provided":[{"name":"pz-elasticsearch","label":"user-provided","tags":[],"credentials":{"host":"internal-gsn-elast-LoadBala-1UW5ER1AXMNZI-1264212674.us-east-1.elb.amazonaws.com:9200","hostname":"internal-gsn-elast-LoadBala-1UW5ER1AXMNZI-1264212674.us-east-1.elb.amazonaws.com","port":"9200"},"syslog_drain_url":""}],"aws-s3":[{"name":"edb-s3","label":"aws-s3","tags":[],"plan":"standard","credentials":{"access_key_id":"AKIAJHJDW5BXQW54ONJQ","bucket":"cf-f751735b-7a1e-49ee-9e55-de333805be00","region":"us-east-1","secret_access_key":"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"}}]}'
             vcap_json = os.getenv('VCAP_SERVICES')
-            if vcap_json != None:
+            if vcap_json:
                 vcap = json.loads(vcap_json)
-                auth_index = vcap['p-elasticsearch'][0]['credentials']['index']
-                auth_user = vcap['p-elasticsearch'][0]['credentials']['username']
-                auth_pass = vcap['p-elasticsearch'][0]['credentials']['password']
-                db_host = str(vcap['p-elasticsearch'][0]['credentials']['host'])+':'+str(vcap['p-elasticsearch'][0]['credentials']['port'])
-            else:
-                db_host = '127.0.0.1:9200'
-                auth_index = 'article'
-                auth_user = ''
-                auth_pass = ''
+                if safe_get(vcap, ['user-provided', 0, 'credentials', 'username']):
+                    auth_user = safe_get(vcap, ['user-provided', 0, 'credentials', 'username'])
+
+                if safe_get(vcap, ['user-provided', 0, 'credentials', 'password']):
+                    auth_pass = safe_get(vcap, ['user-provided', 0, 'credentials', 'password'])
+
+                if vcap['user-provided'][0]['credentials']['host']:
+                    db_host = '{}:{}'.format(vcap['user-provided'][0]['credentials']['host'],
+                                             vcap['user-provided'][0]['credentials']['port'])
 
         log_dir = parser.get('Logging', 'log_file')
         print('logging to '+log_dir)
@@ -369,8 +388,7 @@ def _parse_config(parser):
         whitelist = parser.get('URLS', 'file')
         sources = parser.get('URLS', 'sources').split(',')
         pool_size = int(parser.get('Processes', 'pool_size'))
-        return collection, whitelist, sources, pool_size, log_dir, log_level, auth_index, auth_user, \
-               auth_pass, db_host
+        return collection, whitelist, sources, pool_size, log_dir, log_level, auth_index, auth_user, auth_pass, db_host
     except Exception, e:
         print 'Problem parsing config file. {}'.format(e)
 
@@ -393,8 +411,8 @@ def run_scraper():
     # Get the info from the cocfigcf
     db_collection, whitelist_file, sources, pool_size, log_dir, log_level, auth_index, auth_user, auth_pass, \
     db_host = parse_config()
-    print 'Scraper connecting to db at ' + auth_index + ' with username: ' + auth_user + ' and password: ' + auth_pass + \
-          ' and host: ' + db_host
+    print 'Scraper connecting to db at ' + auth_index + ' with username: ' + auth_user + ' and password: ' + \
+          auth_pass + ' and host: ' + db_host
 
     # Setup the logging
     logger = logging.getLogger('scraper_log')

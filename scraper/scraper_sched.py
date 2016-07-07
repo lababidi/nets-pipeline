@@ -1,9 +1,8 @@
 import os
 import logging
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from scraper import run_scraper
-from scraper_archiver import run_scraper_archiver
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 logging.basicConfig()
@@ -25,7 +24,7 @@ def timeout_runner():
     try:
         run_scraper()
     except Exception:
-        print "====[ Exception in scraper_sched.timeout_runner: ", sys.exc_info()
+        print "====[ Exception in scraper_sched.timeout_runner: ", sys.exc_info()[0]
 
     time_end = datetime.utcnow()
     print('----[ timeout_runner, end. duration: {} time: {}'.format(str(time_end - time_start), time_end))

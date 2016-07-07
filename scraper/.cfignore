@@ -1,0 +1,3 @@
+*.log
+cf-ssh-es.sh
+cf-ssh-mongo.sh
