@@ -47,6 +47,16 @@ class Supportkit:
                     if '_id' in x: del x['_id']
                     self.es.index(index='articles', doc_type=type, body = x)
 
+    def initarticles(self, es_index ):
+        idx_client = IndicesClient( self.es)
+        idx_client.create( es_index)
+
+    def initevents(self, es_index):
+        idx_client = IndicesClient(self.es)
+
+        idx_client.create(es_index)
+        idx_client.put_mapping( doc_type='event', index=[es_index],body= EventCandidate._es_map )
+
     def initialize(self,es_index):
         idx_client = IndicesClient( self.es)
         if idx_client.exists(es_index):
@@ -54,7 +64,11 @@ class Supportkit:
             idx_client.delete(es_index)
 
         self.logger.info("Initializing %s" % es_index)
-        idx_client.create( es_index)
+        if es_index == 'articles':
+            self.initarticles(es_index)
+        else:
+            self.initevents(es_index)
+
         self.logger.info("%s ready." % es_index)
 
     def pipeline(self, type):
@@ -82,7 +96,8 @@ class Supportkit:
                 ec.date_collected_as_date_published = True
 
             ec.find_entities()
-            ec.geocode()
+#            ec.geocode()
+
             self.es.index(index='events', doc_type=type, body = ec.__dict__)
 
 

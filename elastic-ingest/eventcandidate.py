@@ -21,6 +21,53 @@ class EventCandidate:
         'EVENT' : 'events'
     }
 
+    _es_map = \
+        {
+            "event": {
+                "properties": {
+                    "publisher": {
+                        "type": "string"
+                    },
+                    "language": {
+                        "type": "string"
+                    },
+                    "publisher": {
+                        "type": "string"
+                    },
+                    "content": {
+                        "type": "string",
+                        "index" : "analyzed"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "article": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "date_collected": {
+                        "type": "date"
+                    },
+                    "date_published": {
+                        "type": "string"
+                    },
+                    "date_collected_as_date_publshed": {
+                        "type": "boolean"
+                    },
+                    "people": {
+                        "type" : "object",
+                        "properties" : {
+                            "code" : { "type" : "string" },
+                            "value" : { "type" : "string" }
+                        }
+                    }
+
+                }
+            }
+        }
+
     _proxy =  {'status': 'OK', 'results': [{'geometry': {'location_type': 'APPROXIMATE', 'bounds': {
             'northeast': {'lat': 24.7396987, 'lng': 80.21023199999999},
             'southwest': {'lat': 24.6879175, 'lng': 80.1552576}}, 'viewport': {
@@ -44,9 +91,27 @@ class EventCandidate:
             'types': ['locality', 'political']}]}
 
     def __init__(self):
-        self.entities={}
-        for bucket in ['people','places','dates','times','organizations','events', 'languages','other']:
-            self.entities[bucket] = []
+        self.people = []
+        self.places = []
+        self.dates = []
+        self.times = []
+        self.organizations= []
+        self.events = []
+        self.languages = []
+        self.other = []
+
+
+    def bucketlist(self, name ):
+        if name == 'people': return self.people
+        elif name == 'places': return self.places
+        elif name == 'dates': return self.dates
+        elif name == 'times':return self.times
+        elif name == 'organizations':return self.organizations
+        elif name == 'events':return self.events
+        elif name == 'languages':return self.languages
+        else:
+            return self.other
+
 
     @property
     def type(self):return self.type
@@ -124,8 +189,8 @@ class EventCandidate:
             bucket = 'other'
             if entity.label_ in EventCandidate._nlpmap: bucket = EventCandidate._nlpmap[entity.label_]
             item = { 'code' : entity.label_, 'value' : entity.string }
-
-            self.entities[bucket].append(item)
+            #todo use reference
+            self.bucketlist(bucket).append(item)
 
     # run geocoder here
 
