@@ -1,5 +1,5 @@
 applications:
-- name: edb-scraper
+- name: edb-scraper-es
   command: "python scraper_sched.py"
   no-hostname: true
   no-route: true
@@ -10,10 +10,11 @@ applications:
   timeout: 80
   health-check-type: none
   services:
-    - edb-mongodb
+    - pz-elasticsearch
     - edb-s3
   env:
+    SCRAPER_AUTH_INDEX: nets-article-test
     SCRAPER_SCHED_INTERVAL_SECONDS: 5400
     SCRAPER_SCHED_ONETIME: False
-    SCRAPER_SCHED_ARCHIVE: True
+    SCRAPER_SCHED_ARCHIVE: False
     SCRAPER_DELETE_INTERMEDIARY_ARCHIVES: False

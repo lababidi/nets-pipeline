@@ -3,6 +3,8 @@ public
 .tmp
 .sass-cache
 .idea
+*.pyc
+*.log
 client/bower_components
 src/bower_components
 dist
