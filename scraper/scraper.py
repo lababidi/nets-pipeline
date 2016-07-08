@@ -162,7 +162,7 @@ def parse_results(rss_results, website, lang, connection, auth_index):
                 "date_published_original": result.date,
                 "date_published": date_parsed,
                 "date_collected": datetime.now().isoformat(),
-                "source": website,
+                "publisher": website,
                 "language": lang
             })
 

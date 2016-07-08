@@ -13,7 +13,7 @@ applications:
     - pz-elasticsearch
     - edb-s3
   env:
-    SCRAPER_AUTH_INDEX: nets-article-test
+    SCRAPER_AUTH_INDEX: nets-article
     SCRAPER_SCHED_INTERVAL_SECONDS: 5400
     SCRAPER_SCHED_ONETIME: False
     SCRAPER_SCHED_ARCHIVE: False
