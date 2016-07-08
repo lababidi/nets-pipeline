@@ -21,8 +21,18 @@ class EventCandidate:
         'EVENT' : 'events'
     }
 
-    _es_map = \
-        {
+
+    _nlpentitymap = {
+        'people' : 'person',
+        'places' : 'place',
+        'dates' : 'nlpdate',
+        'times' : 'nlptime',
+        'organizations' : 'organization',
+        'languages' : 'language',
+         'events' : 'nlpevent'
+    }
+
+    _es_map =  {
             "event": {
                 "properties": {
                     "publisher": {
@@ -56,14 +66,14 @@ class EventCandidate:
                     "date_collected_as_date_publshed": {
                         "type": "boolean"
                     },
-                    "people": {
-                        "type" : "object",
-                        "properties" : {
-                            "code" : { "type" : "string" },
-                            "value" : { "type" : "string" }
-                        }
-                    }
-
+                    "people": { "type" : "nested" },
+                    "places": { "type" : "nested" },
+                    "dates": { "type" : "nested" },
+                    "times": { "type" : "nested" },
+                    "organizations": { "type" : "nested" },
+                    "languages": { "type" : "nested" },
+                    "events": { "type" : "nested" },
+                    "other": { "type" : "nested" },
                 }
             }
         }
@@ -100,6 +110,9 @@ class EventCandidate:
         self.languages = []
         self.other = []
 
+# todo - might be useful to place entities in types. e.g. "person", "place", etc.
+    def entitytype(self, key):
+        pass
 
     def bucketlist(self, name ):
         if name == 'people': return self.people
@@ -114,10 +127,10 @@ class EventCandidate:
 
 
     @property
-    def type(self):return self.type
+    def source(self):return self.source
 
-    @type.setter
-    def type(self,v): self.type = v
+    @source.setter
+    def source(self,v): self.source = v
 
     @property
     def content(self): return self.content
@@ -188,7 +201,7 @@ class EventCandidate:
         for entity in nlp_doc.ents:
             bucket = 'other'
             if entity.label_ in EventCandidate._nlpmap: bucket = EventCandidate._nlpmap[entity.label_]
-            item = { 'code' : entity.label_, 'value' : entity.string }
+            item =  { 'code' : entity.label_, 'value' : entity.string  }
             #todo use reference
             self.bucketlist(bucket).append(item)
 

@@ -82,7 +82,7 @@ class Supportkit:
         self.logger.info("Retrieved %s %s articles" % (len(hits), type))
         for article in hits:
             ec = EventCandidate()
-            ec.type = type
+            ec.source = type
             ec.article = article['_id']
             ec.content = article['_source']['content']
             ec.url = article['_source']['url']
@@ -98,7 +98,7 @@ class Supportkit:
             ec.find_entities()
 #            ec.geocode()
 
-            self.es.index(index='events', doc_type=type, body = ec.__dict__)
+            self.es.index(index='events', doc_type='event', body = ec.__dict__)
 
 
     def export(self,type):
