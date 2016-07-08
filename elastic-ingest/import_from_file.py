@@ -1,6 +1,6 @@
 """
-This file can be used to import articles from json of csv into elastic. It gives each article a random date within a
-specified date range. It also transforms the input set to wor for elastic.
+This file can be used to test/import articles from json of csv into elastic. It gives each article a random date within
+a specified date range. It also transforms the input set to wor for elastic.
 """
 
 import csv
