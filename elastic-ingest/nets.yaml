@@ -2,9 +2,13 @@ directories:
   articles: /apps/nets-pipeline-home/data
   logs: /apps/nets-pipeline-home/logs
   export: /apps/nets-pipeline-home/data
+
 elasticsearch:
   host: localhost
-  port: 92
+  port: 9200
+  articles-index: nets-article
+  events-index: nets-events
+
 
 geocoder:
  #  name: CLAVIN
