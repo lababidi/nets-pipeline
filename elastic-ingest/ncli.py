@@ -70,10 +70,9 @@ class Ncli:
         self.logger.info("Send %s articles through the pipeline" % n)
         query =  '{"query": { "bool": { "must_not": { "exists": { "field": "status" }}}}}'
         result = self.es.search(index=es_index,doc_type=es_doctype,size=n, body=query)
-
         articles = result['hits']['hits']
+
         self.eventpipeline.batch( articles )
-#        self.eventpipeline.single(articles[0])
 
     def load(self):
         self.logger.info("Load articles")

@@ -90,10 +90,12 @@ class Pipeline:
         nlp_doc = Pipeline._nlp(event['content'])
 
         for entity in nlp_doc.ents:
-            bucket = 'other'
-            if entity.label_ in Pipeline._nlpmap: bucket = Pipeline._nlpmap[entity.label_]
-            item  = {'code': entity.label_, 'value': entity.string}
-            self.bucketlist(event, bucket).append(item)
+            bucketname = 'other'
+            if entity.label_ in Pipeline._nlpmap: bucketname = Pipeline._nlpmap[entity.label_]
+            bucket =  self.bucketlist(event, bucketname)
+            item = entity.string.strip()
+            if len(item) > 0 and item not in bucket:
+                bucket.append(item)
 
     #todo - use es.bulk functions
     def persist(self,events):

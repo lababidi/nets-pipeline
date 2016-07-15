@@ -1,0 +1,39 @@
+<html>
+<body style="margin:3%;font-size:20px">
+    <label>URL:</label><pre id="url"></pre>
+    <hr/>
+    <p>Payload:</p><pre id="query"></pre>
+    <hr/>
+    <p>Aggregates:</p><pre id="aggregate"></pre>
+</body>
+
+<script src="eq.js"></script>
+<script>
+
+    url = eventurl("title,content") //comma seperated list of desired fields.  Send "" for all fields
+
+    keywords = "ied bomb"
+    q = query(
+        keywords,          // string of keywords REQUIRED
+        "2015-01-01",      // start date REQUIRED
+        "2016-07-14",      // end date REQUIRED
+        ["Iraq", "Iran"],  // place filters - list may be empty
+        ["Barack Obama"],  // people filters
+        []                 // organization filters
+        )
+
+    a = aggregates(
+        keywords,          // string of keywords REQUIRED
+        "2015-01-01",      // start date REQUIRED
+        "2016-07-14",      // end date REQUIRED
+        ["Iraq", "Iran"],  // place filters - list may be empty
+        ["Barack Obama"],  // people filters
+        []                 // organization filters
+        )
+
+    document.getElementById('url').innerHTML = url
+    document.getElementById('query').innerHTML = JSON.stringify(q)
+    document.getElementById('aggregate').innerHTML = JSON.stringify(a)
+
+</script>
+</html>

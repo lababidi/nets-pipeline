@@ -6,8 +6,13 @@ directories:
 elasticsearch:
   host: localhost
   port: 9200
-  articles-index: nets-article
-  events-index: nets-events
+  indexes:
+  - type: article
+    name: nets-article
+    doctype: nets-article
+  - type: event
+    name: nets-event
+    doctype: event
 
 
 geocoder:
