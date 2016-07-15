@@ -5,6 +5,9 @@
     <p>Payload:</p><pre id="query"></pre>
     <hr/>
     <p>Aggregates:</p><pre id="aggregate"></pre>
+    <hr/>
+    <p>Significant Terms:</p><pre id="sterms"></pre>
+
 </body>
 
 <script src="eq.js"></script>
@@ -12,28 +15,54 @@
 
     url = eventurl("title,content") //comma seperated list of desired fields.  Send "" for all fields
 
-    keywords = "ied bomb"
+    keywords = "Britain"
+    start_date = "2015-01-01"
+    end_date = "2016-07-14"
+    places = ["London"]
+    people  = []
+    organizations = []
+
+
+    // Obtain the query string sent in the body to the url to get
+
     q = query(
-        keywords,          // string of keywords REQUIRED
-        "2015-01-01",      // start date REQUIRED
-        "2016-07-14",      // end date REQUIRED
-        ["Iraq", "Iran"],  // place filters - list may be empty
-        ["Barack Obama"],  // people filters
-        []                 // organization filters
+        keywords,      // string of keywords REQUIRED
+        start_date,    // start date REQUIRED
+        end_date,      // end date REQUIRED
+        places,        // place filters - list may be empty
+        people,        // people filters
+        organizations, // organization filters
+        0,             // starting offset
+        20             // number of records to return
         )
 
+    // obtain lists of all places, people, and organizations found in the query spec
+
     a = aggregates(
-        keywords,          // string of keywords REQUIRED
-        "2015-01-01",      // start date REQUIRED
-        "2016-07-14",      // end date REQUIRED
-        ["Iraq", "Iran"],  // place filters - list may be empty
-        ["Barack Obama"],  // people filters
-        []                 // organization filters
+        keywords,     // string of keywords REQUIRED
+        start_date,   // start date REQUIRED
+        end_date,     // end date REQUIRED
+        places,       // place filters - list may be empty
+        people,       // people filters
+        organizations // organization filters
         )
+
+    // obtain significant places, people, and organizations found in the query spec
+
+    st = significant_terms(
+        keywords,     // string of keywords REQUIRED
+        start_date,   // start date REQUIRED
+        end_date,     // end date REQUIRED
+        places,       // place filters - list may be empty
+        people,       // people filters
+        organizations // organization filters
+        )
+
 
     document.getElementById('url').innerHTML = url
     document.getElementById('query').innerHTML = JSON.stringify(q)
     document.getElementById('aggregate').innerHTML = JSON.stringify(a)
+    document.getElementById('sterms').innerHTML = JSON.stringify(st)
 
 </script>
 </html>

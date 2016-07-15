@@ -11,9 +11,11 @@ function eventurl( fieldlist )
         url = url + "?_source=" + fieldlist
     return url
 }
-function query( keywords,start_date, end_date, places, people, organizations )
+function query( keywords,start_date, end_date, places, people, organizations, offset, size )
 {
     payload = {
+        "from" : offset,
+        "size" : size,
         "query" : {
             "filtered" : {
                 "query" : {
@@ -48,9 +50,21 @@ function query( keywords,start_date, end_date, places, people, organizations )
     return payload
 }
 
+function significant_terms( keywords, start_date, end_date, places, people, organizations)
+{
+    payload = query(keywords, start_date, end_date, places, people, organizations, 0, 0)
+    payload['size'] = 0
+    payload['aggs'] =   {
+        "significantPlaces" : { "significant_terms" : { "field" : "places" } },
+        "significantPeople" : { "significant_terms" : { "field" : "people" } }
+    }
+
+    return payload
+}
+
 function aggregates( keywords, start_date, end_date, places, people, organizations)
 {
-    payload = query(keywords, start_date, end_date, places, people, organizations)
+    payload = query(keywords, start_date, end_date, places, people, organizations, 0,0 )
     payload['size'] = 0
     payload['aggs'] = {
         "places" : { "terms" : { "field" : "places" }},
@@ -59,6 +73,6 @@ function aggregates( keywords, start_date, end_date, places, people, organizatio
 
     }
 
-
     return payload
 }
+
