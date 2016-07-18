@@ -3,6 +3,9 @@ directories:
   logs: /apps/nets-pipeline-home/logs
   export: /apps/nets-pipeline-home/data
 
+pipeline:
+  delay: 10
+  
 elasticsearch:
   host: localhost
   port: 9200

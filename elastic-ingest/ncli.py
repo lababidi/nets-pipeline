@@ -8,6 +8,7 @@ from elasticsearch import Elasticsearch, ElasticsearchException
 from elasticsearch.client import IndicesClient
 from os import listdir
 from os.path import isfile, join
+from time import sleep
 
 
 class Ncli:
@@ -42,7 +43,6 @@ class Ncli:
                 return (item['name'], item['doctype'])
 
     def status(self):
-        self.logger.info("Status request")
         idx_client = IndicesClient(self.es)
         for idx in ['article', 'event']:
             es_index = self.indexinfo(idx)[0]
@@ -73,6 +73,14 @@ class Ncli:
         articles = result['hits']['hits']
 
         self.eventpipeline.batch( articles )
+
+    def autopipeline(self, n):
+        delay = self.parameters['pipeline']['delay']
+        while True:
+            self.pipeline(n)
+            self.status()
+            self.logger.info("..................")
+            sleep(delay)
 
     def load(self):
         self.logger.info("Load articles")
@@ -106,4 +114,4 @@ elif args.load:
 elif args.export:
     me.export(args.export)
 elif args.pipeline:
-    me.pipeline(args.pipeline)
+    me.autopipeline(args.pipeline)
