@@ -22,13 +22,15 @@ class Supportkit:
         self.es_url = 'http://%s:%s' % (self.parameters['elasticsearch']['host'],self.parameters['elasticsearch']['port'])
         self.logger.info("ready. ES URL : %s", self.es_url)
         self.es = Elasticsearch()
+        self.articlesindex = self.parameters['elasticsearch']['articles-index']
+        self.eventindex = self.parameters['elasticsearch']['events-index']
+
         EventCandidate._geocoder = self.parameters['geocoder']['url']
-        self._title = 'foo'
 
 
     def status(self):
         self.logger.info("Status request")
-        indices = ['articles','events']
+        indices = [ self.articlesindex, self.eventindex ]
         idx_client = IndicesClient( self.es)
         for idx in indices:
             if  idx_client.exists(idx):
@@ -47,21 +49,21 @@ class Supportkit:
                     if '_id' in x: del x['_id']
                     self.es.index(index='articles', doc_type=type, body = x)
 
-    def initarticles(self, es_index ):
+    def initarticles(self):
+        idx_client = IndicesClient( self.articlesindex)
+        idx_client.create(self.articlesindex)
+
+    def initevents(self):
+        idx_client = IndicesClient(self.eventindex)
+
+        idx_client.create(self.eventindex)
+        idx_client.put_mapping( doc_type='event', index=[self.eventindex],body= EventCandidate._es_map )
+
+    def initialize(self,spec):
+        es_index = self.articlesindex
+        if spec == 'events': es_index  self.eventindex
+
         idx_client = IndicesClient( self.es)
-        idx_client.create( es_index)
-
-    def initevents(self, es_index):
-        idx_client = IndicesClient(self.es)
-
-        idx_client.create(es_index)
-        idx_client.put_mapping( doc_type='event', index=[es_index],body= EventCandidate._es_map )
-
-    def initialize(self,es_index):
-        idx_client = IndicesClient( self.es)
-        if idx_client.exists(es_index):
-            self.logger.warn("Erasing %s" % es_index)
-            idx_client.delete(es_index)
 
         self.logger.info("Initializing %s" % es_index)
         if es_index == 'articles':
@@ -73,11 +75,11 @@ class Supportkit:
 
     def pipeline(self, type):
         self.logger.info("%s Pipeline" % type)
-        if not type in ['phoenix']:
+        if not type in ['nets-article']:
             self.logger.error("%s article type not supported" % type )
             return
 
-        result = self.es.search(index='articles',doc_type=type,size=500)
+        result = self.es.search(index='nets-article',doc_type=type,size=500)
         hits= result['hits']['hits']
         self.logger.info("Retrieved %s %s articles" % (len(hits), type))
         for article in hits:
@@ -88,24 +90,24 @@ class Supportkit:
             ec.url = article['_source']['url']
             ec.title = article['_source']['title']
             ec.language = article['_source']['language']
-            ec.date_collected = article['_source']['date_added']['$date']
-            ec.date_published = article['_source']['date']
+            ec.date_collected = article['_source']['date_published']
+            ec.date_published = article['_source']['date_collected']
             ec.date_collected_as_date_published = False
-            if len(ec.date_published) == 0:
-                ec.date_published = ec.date_collected
-                ec.date_collected_as_date_published = True
+#            if len(ec.date_published) == 0:
+ #               ec.date_published = ec.date_collected
+  #              ec.date_collected_as_date_published = True
 
             ec.find_entities()
 #            ec.geocode()
 
-            self.es.index(index='events', doc_type='event', body = ec.__dict__)
+            self.es.index(index='nets-events', doc_type='event', body = ec.__dict__)
 
 
     def export(self,type):
-        result = self.es.search(index='events', doc_type=type, size=500)
+        result = self.es.search(index='nets-events', doc_type=type, size=500)
         hits = result['hits']['hits']
         self.logger.info("Retrieved %s %s events for export" % (len(hits), type))
-        filename =  join( self.parameters['directories']['export'], 'events.json')
+        filename =  join( self.parameters['directories']['export'], 'nets-events.json')
         self.logger.info( '%s' % filename )
         with open(filename, 'w') as f:
             json.dump(hits, f)
@@ -116,7 +118,7 @@ parser.add_argument('--status', help='Display NETS status', action='store_true')
 parser.add_argument('--load', default=None, help='load raw article files with given type' )
 parser.add_argument('--export', default=None, help='export up to 100 events with given type' )
 parser.add_argument('--pipeline',  default=None, help='convert all articles  of given type to events')
-parser.add_argument('--initialize',  default='NA', help='Initialize an index', choices=['articles','events'])
+parser.add_argument('--initialize',  default='NA', help='Initialize an index', choices=['nets-article','nets-events'])
 
 
 

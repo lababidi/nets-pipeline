@@ -73,7 +73,7 @@ class EventCandidate:
                     "organizations": { "type" : "nested" },
                     "languages": { "type" : "nested" },
                     "events": { "type" : "nested" },
-                    "other": { "type" : "nested" },
+                    "other": { "type" : "nested" }
                 }
             }
         }
