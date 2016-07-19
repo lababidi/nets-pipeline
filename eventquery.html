@@ -13,56 +13,63 @@
 <script src="eq.js"></script>
 <script>
 
-    url = eventurl("title,content") //comma seperated list of desired fields.  Send "" for all fields
+    url = eventUrl("title,content"); //comma separated list of desired fields.  Send "" for all fields
 
-    keywords = "Britain"
-    start_date = "2015-01-01"
-    end_date = "2016-07-14"
-    places = ["London"]
-    people  = []
-    organizations = []
+    // query string can contain +putin (must contain), -cheese (must not contain), AND, OR, NOT,
+    //   Oba?a (wildcard), mesda* (wildcard), brwn~ (fuzzy)
+    //   see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax
+    query_string = "*";         // default to just "*"
+    only_search_title = false;
+    start_date = "2015-01-01";
+    end_date = "2016-07-19";
+    places = [];
+    people  = ['Sivanandh'];
+    organizations = [];
 
 
     // Obtain the query string sent in the body to the url to get
 
     q = query(
-        keywords,      // string of keywords REQUIRED
-        start_date,    // start date REQUIRED
-        end_date,      // end date REQUIRED
-        places,        // place filters - list may be empty
-        people,        // people filters
-        organizations, // organization filters
-        0,             // starting offset
-        20             // number of records to return
-        )
+        query_string,       // string of keywords REQUIRED
+        only_search_title,  // only search text in title
+        start_date,         // start date REQUIRED
+        end_date,           // end date REQUIRED
+        places,             // place filters - list may be empty
+        people,             // people filters
+        organizations,      // organization filters
+        0,                  // starting offset
+        20                  // number of records to return
+    );
 
     // obtain lists of all places, people, and organizations found in the query spec
 
     a = aggregates(
-        keywords,     // string of keywords REQUIRED
-        start_date,   // start date REQUIRED
-        end_date,     // end date REQUIRED
-        places,       // place filters - list may be empty
-        people,       // people filters
-        organizations // organization filters
-        )
+        query_string,       // string of keywords REQUIRED
+        only_search_title,  // only search text in title
+        start_date,         // start date REQUIRED
+        end_date,           // end date REQUIRED
+        places,             // place filters - list may be empty
+        people,             // people filters
+        organizations       // organization filters
+    );
 
     // obtain significant places, people, and organizations found in the query spec
 
     st = significant_terms(
-        keywords,     // string of keywords REQUIRED
-        start_date,   // start date REQUIRED
-        end_date,     // end date REQUIRED
-        places,       // place filters - list may be empty
-        people,       // people filters
-        organizations // organization filters
-        )
+        query_string,       // string of keywords REQUIRED
+        only_search_title,  // only search text in title
+        start_date,         // start date REQUIRED
+        end_date,           // end date REQUIRED
+        places,             // place filters - list may be empty
+        people,             // people filters
+        organizations       // organization filters
+    );
 
 
-    document.getElementById('url').innerHTML = url
-    document.getElementById('query').innerHTML = JSON.stringify(q)
-    document.getElementById('aggregate').innerHTML = JSON.stringify(a)
-    document.getElementById('sterms').innerHTML = JSON.stringify(st)
+    document.getElementById('url').innerHTML = url;
+    document.getElementById('query').innerHTML = JSON.stringify(q);
+    document.getElementById('aggregate').innerHTML = JSON.stringify(a);
+    document.getElementById('sterms').innerHTML = JSON.stringify(st);
 
 </script>
 </html>
