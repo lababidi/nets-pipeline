@@ -1,0 +1,16 @@
+applications:
+- name: nets-pipeline
+  command: "python ncli.py"
+  no-hostname: true
+  no-route: true
+  buildpack: python_buildpack
+  memory: 2048M
+  disk_quota: 1G
+  instances: 1
+  timeout: 80
+  health-check-type: none
+  services:
+    - pz-elasticsearch
+  env:
+    NCLI_COMMAND: languagepack
+    

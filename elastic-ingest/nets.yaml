@@ -5,7 +5,7 @@ directories:
 
 pipeline:
   delay: 10
-  
+
 elasticsearch:
   host: localhost
   port: 9200
