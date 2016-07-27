@@ -17,6 +17,12 @@ function query( query_string, only_search_title, start_date, end_date, places, p
     var payload = {
         "from": offset,
         "size": size,
+        "sort": [{
+            "date_published": {
+                "order": "desc",
+                "unmapped_type": "boolean"
+            }
+        }],
         "query": {
             "filtered": {
                 "query": {
@@ -64,6 +70,39 @@ function significant_terms( query_string, only_search_title, start_date, end_dat
         "significantPlaces" : { "significant_terms" : { "field" : "places" } },
         "significantPeople" : { "significant_terms" : { "field" : "people" } }
     };
+
+    return payload
+}
+
+function unique_places( query_string, only_search_title, start_date, end_date, places, people, organizations)
+{
+    var payload = query( query_string, only_search_title, start_date, end_date, places, people, organizations, 0, 0);
+    payload['size'] = 0;
+    payload['aggs'] =   {
+        "uniquePlaces" : {
+            "terms" : {
+                "field" : "places",
+                "size" : 0          // return ALL of them
+            }
+        }
+    };
+
+    return payload
+}
+
+function unique_places_all()
+{
+    var payload = {
+        "size": 0,
+        "aggs" : {
+            "unique_places" : {
+                "terms" : {
+                    "field" : "places",
+                    "size": 0
+                }
+            }
+        }
+    }
 
     return payload
 }

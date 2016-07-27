@@ -7,6 +7,10 @@
     <p>Aggregates:</p><pre id="aggregate"></pre>
     <hr/>
     <p>Significant Terms:</p><pre id="sterms"></pre>
+    <hr/>
+    <p>Unique Places:</p><pre id="unique_places"></pre>
+    <hr/>
+    <p>Unique Places All:</p><pre id="unique_places_all"></pre>
 
 </body>
 
@@ -65,11 +69,29 @@
         organizations       // organization filters
     );
 
+    // obtain list of unique places
+
+    up = unique_places(
+        query_string,       // string of keywords REQUIRED
+        only_search_title,  // only search text in title
+        start_date,         // start date REQUIRED
+        end_date,           // end date REQUIRED
+        places,             // place filters - list may be empty
+        people,             // people filters
+        organizations       // organization filters
+    );
+
+    // obtain list of unique places without any filtering
+
+    upa = unique_places_all();
+
 
     document.getElementById('url').innerHTML = url;
     document.getElementById('query').innerHTML = JSON.stringify(q);
     document.getElementById('aggregate').innerHTML = JSON.stringify(a);
     document.getElementById('sterms').innerHTML = JSON.stringify(st);
+    document.getElementById('unique_places').innerHTML = JSON.stringify(up);
+    document.getElementById('unique_places_all').innerHTML = JSON.stringify(upa);
 
 </script>
 </html>
