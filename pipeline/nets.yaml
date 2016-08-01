@@ -1,0 +1,21 @@
+directories:
+  articles: /apps/nets-pipeline-home/data
+
+pipeline:
+  delay: 4
+  batchsize : 2
+
+elasticsearch:
+  host: localhost
+  port: 9200
+  indexes:
+  - type: article
+    name: nets-article
+    doctype: nets-article
+  - type: event
+    name: nets-event
+    doctype: event
+
+logging:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
