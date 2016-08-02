@@ -1,5 +1,5 @@
 applications:
-- name: edb-scraper-es
+- name: nets-scraper
   command: "python scraper_sched.py"
   no-hostname: true
   no-route: true
