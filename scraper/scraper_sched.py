@@ -5,8 +5,7 @@ from datetime import datetime
 from scraper import run_scraper
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-logger = None
-logging.basicConfig()
+logging.basicConfig(filename='scraper_sched.log', filemode='a', level=logging.NOTSET, format='%(levelname)s %(asctime)s: %(message)s')
 
 sched_interval_seconds = os.getenv('SCRAPER_SCHED_INTERVAL_SECONDS')
 if sched_interval_seconds is None:
@@ -31,26 +30,6 @@ def timeout_runner():
     print('----[ timeout_runner, end. duration: {} time: {}'.format(str(time_end - time_start), time_end))
 
 if __name__ == '__main__':
-    global logger
-
-    # TODO: read from env
-    log_level = 'debug'
-
-    # Setup the logging
-    logger = logging.getLogger('scraper_sched_log')
-    if log_level == 'info':
-        logger.setLevel(logging.INFO)
-    elif log_level == 'warning':
-        logger.setLevel(logging.WARNING)
-    elif log_level == 'debug':
-        logger.setLevel(logging.DEBUG)
-
-    fh = logging.FileHandler('scraper_sched.log', 'a')
-    formatter = logging.Formatter('%(levelname)s %(asctime)s: %(message)s')
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-    logger.info('Running in scheduled hourly mode')
-
     print('running one-time: '+onetime)
     if onetime == 'true':
         print('----[ performing one-time single scrape')
