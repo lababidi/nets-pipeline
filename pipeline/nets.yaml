@@ -1,9 +1,15 @@
 directories:
   articles: /apps/nets-pipeline-home/data
+  persist: .
 
 pipeline:
   delay: 4
-  batchsize : 2
+  batchsize: 2
+  components:
+  - nlp
+  - geocode
+  - persisttofile
+ # - persist
 
 elasticsearch:
   host: localhost

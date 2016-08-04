@@ -1,43 +1,11 @@
-import spacy
-from elasticsearch import Elasticsearch
-from elasticsearch.client import IndicesClient
+import logging
+from elasticsearch import Elasticsearch,ElasticsearchException
+from nlpcomponent import nlp
+from geocodecomponent import geocoder
 
 class Pipeline:
 
-    _nlp = None
-    _geocoder = None
-    _logger = None
-
-    _nlpmap = {
-        'PERSON' : 'people',
-        'GPE' : 'places',
-        'LOC' : 'places',
-        'FAC' : 'places',
-        'DATE' : 'dates',
-        'TIME' : 'times',
-        'ORG' : 'organizations',
-        'LANGUAGE' : 'languages',
-        'EVENT' : 'events'
-    }
-
-
-    _nlpentitymap = {
-        'people' : 'person',
-        'places' : 'place',
-        'dates' : 'nlpdate',
-        'times' : 'nlptime',
-        'organizations' : 'organization',
-        'languages' : 'language',
-         'events' : 'nlpevent'
-    }
-
     def __init__(self,parameters):
-        Pipeline._nlp = spacy.load("en")
-        self.es = Elasticsearch(
-            hosts = [
-                {'host': parameters['elasticsearch']['host'],
-                 'port': parameters['elasticsearch']['port']}])
-
 
         for item in parameters['elasticsearch']['indexes']:
             if item['type'] == 'article':
@@ -46,6 +14,27 @@ class Pipeline:
             if item['type'] == 'event':
                 self.event_index = item['name']
                 self.event_doctype = item['doctype']
+
+        self.logger = logging.getLogger('NETS')
+        # initialize pipeline components
+
+        self.components = []
+        for name in parameters['pipeline']['components']:
+            component = None
+            if name == 'nlp': component = nlp(parameters)
+            if name == 'geocode': component = geocoder(parameters)
+            self.components.append( { 'name' : name, 'component' : component})
+            self.logger.info("pipeline component: %s" % name)
+
+        try:
+            self.es = Elasticsearch(hosts=[
+                {'host': parameters['elasticsearch']['host'],
+                 'port': parameters['elasticsearch']['port']}])
+            info = self.es.info()
+
+        except ElasticsearchException:
+            self.logger.info("Elasticsearch is not available.")
+            exit(0)
 
     def articletoevent(self, article ):
         event = {}
@@ -70,42 +59,15 @@ class Pipeline:
         else:
             event['date_published'] = article['_source']['date_added']['$date']
 
-        event['people'] = []
-        event['places'] = []
-        event['dates'] = []
-        event['times'] = []
-        event['organizations'] = []
-        event['events'] = []
-        event['languages'] = []
-        event['other'] = []
         return event
 
+    def persisttofile(self, events):
+        for event in events:
+            print "......."
+            print event
 
-    def bucketlist(self, event, name ):
-        if name == 'people': return event['people']
-        elif name == 'places': return event['places']
-        elif name == 'dates': return event['dates']
-        elif name == 'times':return event['times']
-        elif name == 'organizations':return event['organizations']
-        elif name == 'events':return event['events']
-        elif name == 'languages':return event['languages']
-        else:
-            return event['other']
-
-
-    def find_entities(self,event):
-        nlp_doc = Pipeline._nlp(event['content'])
-
-        for entity in nlp_doc.ents:
-            bucketname = 'other'
-            if entity.label_ in Pipeline._nlpmap: bucketname = Pipeline._nlpmap[entity.label_]
-            bucket =  self.bucketlist(event, bucketname)
-            item = entity.string.strip()
-            if len(item) > 0 and item not in bucket:
-                bucket.append(item)
-
-    #todo - use es.bulk functions
     def persist(self,events):
+
         payload  = { "doc" : { "status" : 1 }}
 
         # for each event, write out the event and set the status to 1 for the associated article
@@ -113,15 +75,20 @@ class Pipeline:
             self.es.index(index=self.event_index, doc_type=self.event_doctype, body=event)
             self.es.update(index=self.article_index, doc_type=self.article_doctype,id=event['article'],body=payload)
 
+
     def batch(self, articles):
         events = []
         for article in articles:
             events.append( self.articletoevent(article))
 
-        for event in events:
-            self.find_entities(event)
-
-        self.persist(events)
+        for c in self.components:
+            component = c['component']
+            if component is not None:
+                event = component.process(events)
+            if c['name'] == 'persisttofile':
+                self.persisttofile(events)
+            if c['name'] == 'persist':
+                self.persist(events)
 
     def single(self, article):
         articles = []
