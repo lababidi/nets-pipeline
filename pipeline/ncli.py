@@ -44,7 +44,7 @@ class Ncli:
 
     def status(self):
         idx_client = IndicesClient(self.es)
-        for idx in ['article', 'event']:
+        for idx in ['raw-article', 'enhanced-article']:
             es_index = self.indexinfo(idx)[0]
             if idx_client.exists(es_index):
                 self.logger.info("%s contains %s documents." % (idx, self.es.count(index=es_index)['count']))
@@ -68,13 +68,13 @@ class Ncli:
             idx_client.put_mapping(doc_type=es_doctype, index=[es_index], body=eventmapping())
         self.logger.info("%s ready." % es_index)
 
-    # find n articles and rum them through the pipeline
+    # find n articles and run them through the pipeline
 
     def pipeline(self, n):
         self.eventpipeline = Pipeline(self.parameters)
-        es_index, es_doctype = self.indexinfo('article')
+        es_index, es_doctype = self.indexinfo('raw-article')
         self.logger.info("Send %s articles through the pipeline" % n)
-        query =  '{"query": { "bool": { "must_not": { "exists": { "field": "status" }}}}}'
+        query =  '{"query": { "bool": { "must": { "match": { "status" : 0 }}}}}'
         result = self.es.search(index=es_index,doc_type=es_doctype,size=n, body=query)
         articles = result['hits']['hits']
 
@@ -84,7 +84,7 @@ class Ncli:
 
     def load(self):
         self.logger.info("Load articles")
-        es_index, es_doctype = self.indexinfo('article')
+        es_index, es_doctype = self.indexinfo('raw-article')
         path = self.parameters['directories']['articles']
         files = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
         for filename in files:
@@ -94,24 +94,39 @@ class Ncli:
                     if '_id' in article: del article['_id']
                     self.es.index(index=es_index, doc_type=es_doctype, body=article)
 
+    def reset(self, n):
+        resetpayload  = {"doc":{"status":0}}
+
+        self.logger.info("reset %s  raw articles" % n)
+        es_index, es_doctype = self.indexinfo('raw-article')
+        query = '{"query": { "bool": { "must": { "match": { "status": "1" }}}}}'
+        result = self.es.search(index=es_index, doc_type=es_doctype, size=n, body=query)
+        articles = result['hits']['hits']
+        tic = 0
+        for article in articles:
+            aid = article["_id"]
+            status = article["_source"]["status"]
+            self.es.update(index=es_index,doc_type=es_doctype,id=aid,body=resetpayload)
+            tic = tic + 1
+            if tic == 500:
+                print "...", tic
+                tic = 0
+
 
 parser = argparse.ArgumentParser(description='NETS Command Line Interface. v %s' % Ncli._version)
 parser.add_argument('--yaml', default='nets.yaml', help='YAML file')
 parser.add_argument('--status', help='Display NETS status', action='store_true')
 parser.add_argument('--load', default=None, help='load raw article files', action='store_true')
 parser.add_argument('--pipeline', default=None, help='Run the pipeline for up to given number of articles')
-parser.add_argument('--initialize', default='NA', help='Initialize an index', choices=['article', 'event'])
+parser.add_argument('--initialize', default='NA', help='Initialize an index', choices=['article', 'enhanced-article'])
+parser.add_argument('--reset', default='NA', help='Reset status of raw articles' )
+
 
 args = parser.parse_args()
 me = Ncli(args.yaml)
 
 # if no arguments on command line, pick up command from environment.
 
-if ( len(sys.argv) == 1 ):
-    command = getenv('NCLI_COMMAND')
-    if command == 'status': args.status = True
-    if command == 'pipeline': args.pipeline = 200
-    if command == 'languagepack' : args.languagepack = True
 if args.status:
     me.status()
 elif not args.initialize == 'NA':
@@ -120,4 +135,5 @@ elif args.load:
     me.load()
 elif args.pipeline:
     me.pipeline( args.pipeline)
-
+elif args.reset:
+    me.reset( args.reset)

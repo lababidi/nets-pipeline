@@ -1,6 +1,6 @@
 directories:
   articles: /apps/nets-pipeline-home/data
-  persist: .
+  persist: /tmp/
 
 pipeline:
   delay: 4
@@ -9,18 +9,17 @@ pipeline:
   - nlp
   - geocode
   - persisttofile
- # - persist
 
 elasticsearch:
   host: localhost
   port: 9200
   indexes:
-  - type: article
-    name: nets-article
+  - type: raw-article
+    name: nets-raw-article
     doctype: nets-article
-  - type: event
+  - type: enhanced-article
     name: nets-event
-    doctype: event
+    doctype: nets-event
 
 logging:
     format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
