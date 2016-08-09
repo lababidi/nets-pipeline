@@ -34,41 +34,41 @@ class nlp(BaseComponent):
         nlp._nlp = spacy.load("en")
 
 
-    def bucketlist(self, event, name ):
-        if name == 'people': return event['people']
-        elif name == 'places': return event['places']
-        elif name == 'dates': return event['dates']
-        elif name == 'times':return event['times']
-        elif name == 'organizations':return event['organizations']
-        elif name == 'events':return event['events']
-        elif name == 'languages':return event['languages']
+    def bucketlist(self, article, name ):
+        if name == 'people': return article['people']
+        elif name == 'places': return article['places']
+        elif name == 'dates': return article['dates']
+        elif name == 'times':return article['times']
+        elif name == 'organizations':return article['organizations']
+        elif name == 'events':return article['events']
+        elif name == 'languages':return article['languages']
         else:
-            return event['other']
+            return article['other']
 
 
-    def process(self, events):
+    def process(self, articles):
 
-        for event in events:
+        for article in articles:
 
-            event['people'] = []
-            event['places'] = []
-            event['dates'] = []
-            event['times'] = []
-            event['organizations'] = []
-            event['events'] = []
-            event['languages'] = []
-            event['other'] = []
+            article['people'] = []
+            article['places'] = []
+            article['dates'] = []
+            article['times'] = []
+            article['organizations'] = []
+            article['events'] = []
+            article['languages'] = []
+            article['other'] = []
 
-            nlp_doc = nlp._nlp(event['content'])
+            nlp_doc = nlp._nlp(article['content'])
 
             for entity in nlp_doc.ents:
                 bucketname = 'other'
                 if entity.label_ in nlp._nlpmap: bucketname = nlp._nlpmap[entity.label_]
-                bucket =  self.bucketlist(event, bucketname)
+                bucket =  self.bucketlist(article, bucketname)
                 item = entity.string.strip()
                 if len(item) > 0 and item not in bucket:
                     bucket.append(item)
 
-        return events
+        return articles
 
 

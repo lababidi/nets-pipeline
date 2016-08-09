@@ -11,10 +11,10 @@ class geocoder(BaseComponent):
         ]
 
 
-    def process(self, events):
+    def process(self, articles):
 
-        for event in events:
-            event['geocodes'] = self.dummydata
+        for article in articles:
+            article['geocodes'] = self.dummydata
 
-        return events
+        return articles
 

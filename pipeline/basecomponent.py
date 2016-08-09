@@ -13,7 +13,7 @@ class BaseComponent:
     # should be ovverridden ...
     # see Pipeline class for base event structure
 
-    def process(self, events ):
+    def process(self, articles):
         pass
 
 
