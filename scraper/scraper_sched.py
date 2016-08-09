@@ -30,6 +30,10 @@ def timeout_runner():
     print('----[ timeout_runner, end. duration: {} time: {}'.format(str(time_end - time_start), time_end))
 
 if __name__ == '__main__':
+    elasticLogger = logging.getLogger('elasticsearch.trace')
+    elasticLogger.setLevel(logging.INFO)
+    elasticLogger.addHandler(logging.FileHandler('scraper_elastic.log'))
+
     print('running one-time: '+onetime)
     if onetime == 'true':
         print('----[ performing one-time single scrape')
