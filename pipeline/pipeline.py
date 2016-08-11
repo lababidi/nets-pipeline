@@ -77,7 +77,7 @@ class Pipeline:
         payload  = { "doc" : { "status" : 1 }}
         for article in articles:
             self.es.index(index=self.enhanced_article_index, doc_type=self.enhanced_article_doctype, body=article)
-            self.es.update(index=self.raw_article_index, doc_type=self.raw_article_doctype,id=article['article'],body=payload)
+            self.es.update(index=self.raw_article_index, doc_type=self.raw_article_doctype,id=article['raw_article_id'],body=payload)
 
 
     def batch(self, raw_articles):
