@@ -24,39 +24,44 @@ function query( query_string, only_search_title, start_date, end_date, places, p
             }
         }],
         "query": {
-            "filtered": {
-                "query": {
+            "bool": {
+                "must": {
                     "query_string": {
                         "query": query_string,
                         "analyze_wildcard": true,
                         "fields": only_search_title? ['title']: ['title', 'content']
                     }
                 },
-                "filter": [
-                    {
-                        "range": {
-                            "date_published": {
-                                "gte": start_date,
-                                "le": end_date
+                "filter": {
+                    "bool": {
+                        "must": [
+                            {
+                               "range": {
+                                   "date_published": {
+                                       "gte": start_date,
+                                       "le": end_date,
+                                       "format": "yyyy-MM-dd"
+                                   }
+                               }
                             }
-                        }
+                        ]
                     }
-                ]
+                }
             }
         }
     };
 
     if ( places.length  > 0 ) {
         for (var place in places)
-            payload.query.filtered.filter.push( { "term" : { "places" : places[place] }})
+            payload.query.bool.filter.bool.must.push( { "term" : { "places" : places[place] }})
     }
     if ( people.length  > 0 ) {
         for (var person in people)
-            payload.query.filtered.filter.push( { "term" : { "people" : people[person] }})
+            payload.query.bool.filter.bool.must.push( { "term" : { "people" : people[person] }})
     }
     if ( organizations.length  > 0 ) {
         for (var org in organizations)
-            payload.query.filtered.filter.push( { "term" : { "organizations" : organizations[org] }})
+            payload.query.bool.filter.bool.must.push( { "term" : { "organizations" : organizations[org] }})
     }
 
     return payload
