@@ -5,7 +5,7 @@ applications:
   no-route: true
   buildpack: python_buildpack
   memory: 2048M
-  disk_quota: 1G
+  disk_quota: 2G
   instances: 1
   timeout: 80
   health-check-type: none
