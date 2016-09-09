@@ -1,8 +1,13 @@
 import logging
 import json
 from elasticsearch import Elasticsearch,ElasticsearchException
+
+# add new pipeline components here
+
 from nlpcomponent import nlp
 from geocodecomponent import geocoder
+from hdacomponent import hda
+
 from os.path import join
 
 
@@ -24,10 +29,15 @@ class Pipeline:
         # initialize pipeline components
 
         self.components = []
+        # create components here based on naming convention
+
         for name in parameters['pipeline']['components']:
             component = None
             if name == 'nlp': component = nlp(parameters)
             if name == 'geocode': component = geocoder(parameters)
+            if name == 'hda' : component = hda(parameters)
+#            if name ==
+
             self.components.append( { 'name' : name, 'component' : component})
             self.logger.info("pipeline component: %s" % name)
 

@@ -8,8 +8,9 @@ pipeline:
   components:
   - nlp
   - geocode
+  - hda
   - persisttofile
-  
+
 
 elasticsearch:
   host: localhost
