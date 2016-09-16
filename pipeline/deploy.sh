@@ -1,2 +1,3 @@
+#!/usr/bin/env bash
 python -m spacy.en.download
-python run_pipeline.py
+python pipeline.py

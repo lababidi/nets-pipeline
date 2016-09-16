@@ -1,11 +1,14 @@
-# elastic ingest
-elasticsearch==2.3.0
-PyYAML==3.10
+nose
+pyahocorasick
 spacy==0.101.0
+elasticsearch==2.3.0
+numpy==1.11.0
+PyYAML==3.11
+urllib3==1.16
 
 ## scraper
 parsedatetime
-BeautifulSoup
+bs4
 APScheduler
 boto3
 cssselect

@@ -12,8 +12,6 @@ server/config/local.env.js
 npm-debug.log
 coverage
 
-.idea
-
 # ignore slq db
 dev.sqlite
 bower_components

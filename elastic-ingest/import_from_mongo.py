@@ -26,7 +26,7 @@ def run():
 
     # -- walk through all stories in mongodb
     stories = mongo_db['stories'].find()
-    print '---[ total stories to process: {}'.format(stories.count())
+    print('---[ total stories to process: {}'.format(stories.count()))
 
     articles_added = 0
     cal = pdt.Calendar()
@@ -59,10 +59,10 @@ def run():
 
             es.index(index=es_auth_index, doc_type=es_auth_index, body=article)
             if item_index % 100 == 0:
-                print '---[ processed: {} added: {}'.format(item_index, articles_added)
+                print('---[ processed: {} added: {}'.format(item_index, articles_added))
             articles_added += 1
 
-    print '---[ total articles added to elastic:{}'.format(articles_added)
+    print('---[ total articles added to elastic:{}'.format(articles_added))
 
 
 def check_url(url, es, es_auth_index):
@@ -81,4 +81,3 @@ def check_url(url, es, es_auth_index):
 if __name__ == '__main__':
     print('Running import mongo to elasticsearch')
     run()
-

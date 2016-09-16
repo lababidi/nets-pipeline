@@ -411,7 +411,7 @@ def run_scraper():
     # Get the info from the cocfigcf
     db_collection, whitelist_file, sources, pool_size, log_dir, log_level, auth_index, auth_user, auth_pass, \
     db_host = parse_config()
-    print 'Scraper connecting to db at ' + auth_index + ' with username: ' + auth_user + ' and password: ' + \
+    print('Scraper connecting to db at ' + auth_index + ' with username: ' + auth_user + ' and password: ' + \
           auth_pass + ' and host: ' + db_host
 
     # Setup the logging
