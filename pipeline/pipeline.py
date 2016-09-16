@@ -7,9 +7,10 @@ from os.path import join
 from time import sleep
 from typing import List
 
+import dateutil.parser as date_parser
+import parsedatetime.parsedatetime
 import spacy
 import yaml
-from elasticsearch import Elasticsearch, ElasticsearchException
 
 from elastic import ElasticClient
 
@@ -21,9 +22,15 @@ def klass(class_str):
     return getattr(sys.modules[__name__], class_str)
 
 
+class EventNLP(object):
+    def __init__(self):
+        self.times = []
+
+
 class EventArticle:
     def __init__(self, raw_id, content="", url="", title="",
                  language="", source="", publisher="", date_published="", date_collected=""):
+        self.nlp = EventNLP()
         self.hda = []
         self.entity = {}
         self.publisher = publisher
@@ -179,6 +186,8 @@ class NLP(BaseComponent):
             'events': 'nlpevent'
         }
 
+        self.cal = parsedatetime.Calendar()
+
     def bucketlist(self, article, name):
         return article[name] if name in self.types else article['other']
 
@@ -196,7 +205,13 @@ class NLP(BaseComponent):
             if len(item) > 0 and item not in article.entity[ent_type]:
                 article.entity[ent_type].append(item)
 
+        times = [ent.string for ent in nlp_doc.ents if ent.label_ == 'DATE' or ent.label_ == 'TIME']
+        article.nlp.times = [self.parse_time(time, date_parser.parse(article.date_published)) for time in times]
+
         return article
+
+    def parse_time(self, time, central_date):
+        return self.cal.parseDT(time, central_date)[0].strftime("%Y-%m-%d %H:%M:%S")
 
 
 class Geocoder(BaseComponent):

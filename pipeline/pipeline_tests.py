@@ -1,9 +1,17 @@
-from pipeline.pipeline import HDA, EventArticle
+from pipeline.pipeline import HDA, EventArticle, NLP
 
 import unittest
 
 
 class TestPipeline(unittest.TestCase):
+
+    def test_time(self):
+        text = "On October 23, the frog dismissed the king. Yesterday, he preferred to eat biscuits."
+        nlp = NLP()
+        article = EventArticle(0, text, date_published='2020-06-07 12:32:54')
+        nlp.process(article)
+        self.assertEqual(['2020-10-23 12:32:54', '2020-06-06 09:00:00'], article.nlp.times)
+
     def test_HDA(self):
         hda = HDA()
         text = '''BEIRUT, Lebanon — In rebel-held areas of Syria, Day 2 of a shaky cease-fire offered a rare chance to go
