@@ -1,0 +1,36 @@
+directories:
+  articles: /apps/nets-pipeline-home/data
+  persist: /tmp/
+
+pipeline:
+  delay: 4
+  batchsize: 2
+  components:
+  - NLP
+  - Geocoder
+  - HDA
+
+
+elasticsearch:
+  host: localhost
+  port: 9200
+  indexes:
+    raw:
+      name: nets-article
+      doctype: nets-article
+    enhanced:
+      name: nets-enhanced-document
+      doctype: enhanced-document
+
+logging:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level: 'INFO'
+
+scraper:
+  whitelist: whitelist_urls.csv
+  processes:
+    pool_size: 30
+  logging:
+    log_file: scraper.log
+    level: debug
+

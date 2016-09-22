@@ -1,6 +1,6 @@
 applications:
 - name: nets-pipeline
-  command: "sh deploy.sh"
+  command: "python pipeline.py"
   no-hostname: true
   no-route: true
   buildpack: python_buildpack

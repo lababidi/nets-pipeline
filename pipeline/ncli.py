@@ -1,14 +1,15 @@
 import argparse
-import yaml
-import logging
 import json
-from eventmapping import eventmapping
-from pipeline import Pipeline
+import logging
+from os import listdir
+from os.path import isfile, join
+
+import yaml
 from elasticsearch import Elasticsearch, ElasticsearchException
 from elasticsearch.client import IndicesClient
-from os import listdir, getenv, system
-from os.path import isfile, join
-import sys
+
+from elastic import event_mapping
+from pipeline import Pipeline
 
 
 class Ncli:
@@ -65,7 +66,7 @@ class Ncli:
             idx_client.delete(es_index)
         idx_client.create(es_index)
         if idx == 'event':
-            idx_client.put_mapping(doc_type=es_doctype, index=[es_index], body=eventmapping())
+            idx_client.put_mapping(doc_type=es_doctype, index=[es_index], body=event_mapping())
         self.logger.info("%s ready." % es_index)
 
     # find n articles and run them through the pipeline
@@ -74,11 +75,11 @@ class Ncli:
         self.eventpipeline = Pipeline(self.parameters)
         es_index, es_doctype = self.indexinfo('raw-article')
         self.logger.info("Send %s articles through the pipeline" % n)
-        query =  '{"query": { "bool": { "must": { "match": { "status" : 0 }}}}}'
-        result = self.es.search(index=es_index,doc_type=es_doctype,size=n, body=query)
+        query = '{"query": { "bool": { "must": { "match": { "status" : 0 }}}}}'
+        result = self.es.search(index=es_index, doc_type=es_doctype, size=n, body=query)
         articles = result['hits']['hits']
 
-        self.eventpipeline.batch( articles )
+        self.eventpipeline.batch(articles)
 
     # load articles from json files in a directory
 
@@ -95,7 +96,7 @@ class Ncli:
                     self.es.index(index=es_index, doc_type=es_doctype, body=article)
 
     def reset(self, n):
-        resetpayload  = {"doc":{"status":0}}
+        resetpayload = {"doc": {"status": 0}}
 
         self.logger.info("reset %s  raw articles" % n)
         es_index, es_doctype = self.indexinfo('raw-article')
@@ -106,10 +107,10 @@ class Ncli:
         for article in articles:
             aid = article["_id"]
             status = article["_source"]["status"]
-            self.es.update(index=es_index,doc_type=es_doctype,id=aid,body=resetpayload)
+            self.es.update(index=es_index, doc_type=es_doctype, id=aid, body=resetpayload)
             tic = tic + 1
             if tic == 500:
-                print "...", tic
+                print("...", tic)
                 tic = 0
 
 
@@ -119,8 +120,7 @@ parser.add_argument('--status', help='Display NETS status', action='store_true')
 parser.add_argument('--load', default=None, help='load raw article files', action='store_true')
 parser.add_argument('--pipeline', default=None, help='Run the pipeline for up to given number of articles')
 parser.add_argument('--initialize', default='NA', help='Initialize an index', choices=['article', 'enhanced-article'])
-parser.add_argument('--reset', default='NA', help='Reset status of raw articles' )
-
+parser.add_argument('--reset', default='NA', help='Reset status of raw articles')
 
 args = parser.parse_args()
 me = Ncli(args.yaml)
@@ -134,6 +134,6 @@ elif not args.initialize == 'NA':
 elif args.load:
     me.load()
 elif args.pipeline:
-    me.pipeline( args.pipeline)
+    me.pipeline(args.pipeline)
 elif args.reset:
-    me.reset( args.reset)
+    me.reset(args.reset)
