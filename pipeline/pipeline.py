@@ -2,11 +2,12 @@ import ahocorasick
 import json
 import logging
 import sys
+import urllib3
 from os import getenv
 from os.path import join
 from time import sleep
 from typing import List
-
+from urllib.parse import quote
 import dateutil.parser as date_parser
 import parsedatetime.parsedatetime
 import spacy
@@ -32,7 +33,9 @@ class EventArticle:
                  language="", source="", publisher="", date_published="", date_collected=""):
         self.nlp = EventNLP()
         self.hda = []
+        self.geography = []
         self.entity = {}
+        self.geokeys = []
         self.publisher = publisher
         self.source = source
         self.language = language
@@ -78,6 +81,18 @@ class EventArticle:
             'date_collected': self.date_collected
         }
 
+    # move some things around until we rethink Elasticsearch mappings
+
+    def legacyMapping(self):
+        self.places = self.entity['places']
+        self.events = self.entity['events']
+        self.times  = self.entity['times']
+        self.people  = self.entity['people']
+        self.dates = self.entity['dates']
+        self.other  = self.entity['other']
+        self.languages  = self.entity['languages']
+        self.organizations = self.entity['organizations']
+
 
 class BaseSource:
     def fetch(self, n=100) -> List[EventArticle]:
@@ -99,7 +114,7 @@ class ElasticSource(BaseSource):
     def fetch(self, n=100) -> List[EventArticle]:
         event_articles = []
         for article in self.es.get_articles(self.index, self.doctype, n):
-            print(article)
+#            print(article)
             a = article['_source']
             event_articles.append(EventArticle(article['_id'],
                                                a['content'],
@@ -139,6 +154,8 @@ class ElasticPersist(BaseComponent):
 
     def process(self, article: EventArticle):
         # for each article, write out the article and set the status to 1 for the associated raw_article
+        article.legacyMapping()
+        article.nlp = []
         self.es.persist(self.enhanced_index, self.enhanced_doctype, article.__dict__)
         self.es.update(self.raw_index, self.raw_doctype, doc_id=article.raw_id, payload={"doc": {"status": 1}})
         # self.es.index(index=self.enhanced_index, doc_type=self.enhanced_doctype, body=article.es())
@@ -149,7 +166,9 @@ class ElasticPersist(BaseComponent):
 
 class FilePersist(BaseComponent):
     def process(self, article: EventArticle):
+        article.legacyMapping()
         path = join(self.destination, article.raw_id + '.json')
+        article.nlp = []
         with open(path, 'w') as f:
             json.dump(article.__dict__, f)
         return article
@@ -215,15 +234,51 @@ class NLP(BaseComponent):
 
 
 class Geocoder(BaseComponent):
-    def __init__(self):
-        self.dummydata = [
-            {'name': 'Lima', 'lat': 32.345, 'lon': 45.32, 'adm1': 'Peru', 'adm2': 'AN'},
-            {'name': 'Stuebensville', 'lat': 32.345, 'lon': 45.32, 'adm1': 'USA', 'adm2': 'OH'}
-        ]
 
-    def process(self, article):
-        article['geocodes'] = self.dummydata
+    def __init__(self):
+        global conf
+        super(self.__class__, self).__init__()
+        self.NO_FEATURE = -1000
+        self.url = conf['geocode']['url']
+        self.pool = urllib3.PoolManager()
+        self.keys = ['country_gid', 'macroregion_gid', 'region_gid', 'macrocounty_gid', 'county_gid',
+                    'localadmin_gid', 'locality_gid',
+                    'borough_gid,', 'neighborhood_gid']
+
+
+    def process(self, article : EventArticle):
+
+        for place in article.entity['places']:
+            placeinfo = {'place': place}
+            url = "%s?text=%s" % (self.url, quote(place))
+            response = self.pool.request('GET', url)
+            response.release_conn()
+            geocode = json.loads(response.data.decode('utf-8'))
+
+            confidence = 0.0
+            findex = 0
+            for index, feature in enumerate(geocode['features']):
+                if feature['properties']['confidence'] > confidence:
+                    confidence = feature['properties']['confidence']
+                    findex = index
+
+            if confidence > 0.0:
+                feature = geocode['features'][findex]
+                ancestry_keys = []
+                placeinfo['geometry'] = feature['geometry']
+                placeinfo['confidence'] = confidence
+
+                for key in self.keys:
+                    if key in feature['properties']:
+                        ancestry_keys.append(feature['properties'][key])
+                        placeinfo[key] = feature['properties'][key]
+                        article.geokeys.append(placeinfo[key])
+
+                if len(ancestry_keys) > 0:
+                    placeinfo['ancestry'] = '.'.join(ancestry_keys)
+            article.geography.append(placeinfo)
         return article
+
 
 
 class HDA(BaseComponent):
@@ -288,16 +343,21 @@ class Pipeline:
             self.components.append(klass(name)())
             logger.info("pipeline component: %s" % name)
 
-        # Elastic component at the end of Pipeline
-        self.components.append(
-            ElasticPersist(ElasticClient(conf['elasticsearch']['host'], conf['elasticsearch']['port']),
-                           self.enhanced_index, self.enhanced_doctype, self.raw_index, self.raw_index)
+        # configuration says persist to file or ElasticSearch
+
+        if 'file' == conf['pipeline']['persistence']:
+            self.components.append(
+                FilePersist(conf['directories']['persist'])
+            )
+        else:
+            self.components.append(
+                ElasticPersist(ElasticClient(conf['elasticsearch']['host'], conf['elasticsearch']['port']),
+                               self.enhanced_index, self.enhanced_doctype, self.raw_index, self.raw_index)
         )
 
     def single(self, article: EventArticle) -> EventArticle:
         for c in self.components:
             # assert isinstance(c, BaseComponent)
-            print(c)
             try:
                 article = c.process(article)
             except TypeError as e:
@@ -307,8 +367,10 @@ class Pipeline:
     def process(self):
         articles = self.source.fetch()
         for article in articles:
+            print(article.title)
             self.single(article)
         logger.info("%s article processed.  Enhanced article count: %s.".format(len(articles)))
+        print("--------Sleep %s" % self.delay)
         sleep(self.delay)
 
 

@@ -6,23 +6,34 @@ pipeline:
   delay: 4
   batchsize: 2
   components:
-  - nlp
-  - geocode
-  - hda
-  - persisttofile
+  - NLP
+  - Geocoder
+  - HDA
+  persistence: elastic
 
+geocode:
+  url:  http://54.221.8.122:3100/v1/search
 
 elasticsearch:
   host: localhost
   port: 9200
   indexes:
-  - type: raw-article
-    name: nets-raw-article
-    doctype: nets-article
-  - type: enhanced-article
-    name: nets-enhanced-document
-    doctype: enhanced-document
+    raw:
+      name: nets-article
+      doctype: nets-article
+    enhanced:
+      name: nets-document_4
+      doctype: enhanced-document
 
 logging:
     format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level: 'INFO'
+
+scraper:
+  whitelist: whitelist_urls.csv
+  processes:
+    pool_size: 30
+  logging:
+    log_file: scraper.log
+    level: debug
 
