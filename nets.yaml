@@ -9,7 +9,10 @@ pipeline:
   - NLP
   - Geocoder
   - HDA
+  persistence: elastic
 
+geocode:
+  url:  http://54.221.8.122:3100/v1/search
 
 elasticsearch:
   host: localhost
@@ -19,7 +22,7 @@ elasticsearch:
       name: nets-article
       doctype: nets-article
     enhanced:
-      name: nets-enhanced-document
+      name: nets-document_4
       doctype: enhanced-document
 
 logging:

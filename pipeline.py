@@ -284,7 +284,7 @@ class Geocoder(BaseComponent):
 class HDA(BaseComponent):
     def __init__(self):
         self.ah = ahocorasick.Automaton()
-        with open('hda_en.json') as f:
+        with open('data/hda_en.json') as f:
             self.categories = json.loads(f.read())
 
         for category in self.categories:

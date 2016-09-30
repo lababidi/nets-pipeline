@@ -1,6 +1,6 @@
-from pipeline.pipeline import HDA, EventArticle, NLP
-
 import unittest
+
+from pipeline import HDA, EventArticle, NLP
 
 
 class TestPipeline(unittest.TestCase):
